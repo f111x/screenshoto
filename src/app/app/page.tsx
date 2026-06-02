@@ -5,8 +5,12 @@ import ImageUploader from '@/components/ImageUploader';
 import FrameworkSelector from '@/components/FrameworkSelector';
 import CodePreview from '@/components/CodePreview';
 import CodeOutput from '@/components/CodeOutput';
+import CompareView from '@/components/CompareView';
+import BatchUploader from '@/components/BatchUploader';
+import CodeFixSuggestions from '@/components/CodeFixSuggestions';
 import type { Framework, ConversionResult } from '@/types';
 import { generateId, compressImage, addToHistory, getRemainingQuota, incrementQuota, hasQuota } from '@/lib/utils';
+import type { BatchItem } from '@/components/BatchUploader';
 
 export default function AppPage() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -15,6 +19,12 @@ export default function AppPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [statusMsg, setStatusMsg] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
+  const [sharing, setSharing] = useState(false);
+  const [similarityScore, setSimilarityScore] = useState<number | null>(null);
+  const [mode, setMode] = useState<'single' | 'batch'>('single');
+  const [batchCode, setBatchCode] = useState<string>('');
+  const [batchFramework, setBatchFramework] = useState<Framework>('html');
 
   const handleImageReady = useCallback((dataUrl: string) => {
     setImageDataUrl(dataUrl);
@@ -86,6 +96,31 @@ export default function AppPage() {
     setCode(newCode);
   }, []);
 
+  const handleShare = useCallback(async () => {
+    if (!code) return;
+    setSharing(true);
+    setError('');
+    try {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: imageDataUrl || '',
+          framework,
+          code,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setShareUrl(data.url);
+      await navigator.clipboard.writeText(data.url);
+    } catch (err: any) {
+      setError('分享失败: ' + (err.message || '未知错误'));
+    } finally {
+      setSharing(false);
+    }
+  }, [code, imageDataUrl, framework]);
+
   const handleReset = useCallback(() => {
     setImageDataUrl(null);
     setCode('');
@@ -94,6 +129,9 @@ export default function AppPage() {
   }, []);
 
   const remaining = getRemainingQuota();
+  const activeCode = mode === 'batch' ? batchCode : code;
+  const activeFramework = mode === 'batch' ? batchFramework : framework;
+  const activeImage = mode === 'batch' ? null : imageDataUrl;
 
   return (
     <div className="flex flex-col flex-1 h-screen">
@@ -135,12 +173,48 @@ export default function AppPage() {
       <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden">
         {/* Left: Upload + Controls */}
         <div className="w-full lg:w-[420px] xl:w-[480px] shrink-0 flex flex-col border-r border-gray-200 dark:border-gray-800">
-          {/* Image upload area */}
-          <div className="h-64 sm:h-80 p-3">
-            <ImageUploader onImageReady={handleImageReady} disabled={loading} />
+          {/* Mode toggle */}
+          <div className="flex items-center gap-1 px-3 pt-3 pb-1">
+            <button
+              onClick={() => setMode('single')}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                mode === 'single'
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              单张模式
+            </button>
+            <button
+              onClick={() => setMode('batch')}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                mode === 'batch'
+                  ? 'bg-violet-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              批量模式 📦
+            </button>
           </div>
 
-          {/* Controls */}
+          {/* Upload area */}
+          <div className={mode === 'single' ? 'h-52 sm:h-64 p-3' : 'p-3'}>
+            {mode === 'single' ? (
+              <ImageUploader onImageReady={handleImageReady} disabled={loading} />
+            ) : (
+              <BatchUploader
+                framework={framework}
+                onBatchComplete={(results) => {
+                  if (results.length > 0) {
+                    setBatchCode(results[0].code || '');
+                    setBatchFramework(framework);
+                  }
+                }}
+              />
+            )}
+          </div>
+
+          {/* Controls (single mode only) */}
           <div className="px-3 pb-3 space-y-3">
             <button
               onClick={handleGenerate}
@@ -173,6 +247,54 @@ export default function AppPage() {
                 {error}
               </div>
             )}
+
+            {shareUrl && (
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium">✅ 分享链接已复制</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareUrl);
+                    }}
+                    className="text-xs text-green-600 dark:text-green-400 hover:underline"
+                  >
+                    再复制
+                  </button>
+                </div>
+                <a
+                  href={shareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-green-600 dark:text-green-400 break-all hover:underline"
+                >
+                  {shareUrl}
+                </a>
+              </div>
+            )}
+
+            {code && !shareUrl && (
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className={`
+                  w-full py-2.5 rounded-xl font-medium text-sm transition-all
+                  ${sharing
+                    ? 'bg-violet-400 text-white cursor-wait'
+                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98]'
+                  }
+                `}
+              >
+                {sharing ? '创建分享中...' : '🔗 创建分享链接'}
+              </button>
+            )}
+
+            {activeCode && activeImage && (
+              <CodeFixSuggestions
+                code={activeCode}
+                framework={activeFramework}
+                onApplyFix={(newCode) => setCode(newCode)}
+              />
+            )}
           </div>
         </div>
 
@@ -183,9 +305,31 @@ export default function AppPage() {
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
               <span>👁️ 预览</span>
               {code && <span className="text-green-500">(已生成)</span>}
+              {similarityScore !== null && (
+                <span className={`ml-auto text-xs font-mono ${
+                  similarityScore >= 80 ? 'text-green-500' : similarityScore >= 50 ? 'text-amber-500' : 'text-red-400'
+                }`}>
+                  ✨ 相似度 {similarityScore}%
+                </span>
+              )}
             </div>
             <div className="flex-1 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-              <CodePreview code={code} framework={framework} />
+              {activeCode && activeImage ? (
+                <div className="h-full p-2">
+                  <CompareView
+                    originalImage={activeImage}
+                    code={activeCode}
+                    framework={activeFramework}
+                    onScoreReceived={setSimilarityScore}
+                  />
+                </div>
+              ) : activeCode ? (
+                <div className="h-full">
+                  <CodePreview code={activeCode} framework={activeFramework} />
+                </div>
+              ) : (
+                <CodePreview code="" framework={framework} />
+              )}
             </div>
           </div>
 
@@ -193,16 +337,17 @@ export default function AppPage() {
           <div className="flex-1 min-h-[300px] lg:min-h-0 p-3 flex flex-col">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
               <span>💻 代码</span>
-              {code && (
+              {activeCode && (
                 <span className="text-xs text-gray-400">
-                  ({framework === 'react' ? '.jsx' : framework === 'vue' ? '.vue' : '.html'})
+                  ({activeFramework === 'react' ? '.tsx' : activeFramework === 'vue' ? '.vue' : '.html'})
                 </span>
               )}
             </div>
             <div className="flex-1 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-              <CodeOutput code={code} framework={framework} onCodeChange={handleCodeChange} />
+              <CodeOutput code={activeCode} framework={activeFramework} onCodeChange={activeImage ? handleCodeChange : undefined} />
             </div>
           </div>
+
         </div>
       </div>
 

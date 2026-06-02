@@ -26,6 +26,12 @@ export default function HomePage() {
             >
               开始使用
             </Link>
+            <Link
+              href="/docs"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              API
+            </Link>
             <a
               href="https://github.com"
               target="_blank"

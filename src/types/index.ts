@@ -8,8 +8,16 @@ export interface ConversionResult {
   createdAt: number;
 }
 
+export interface ShareData {
+  id: string;
+  imageUrl: string;
+  framework: Framework;
+  code: string;
+  createdAt: number;
+}
+
 export interface GenerateRequest {
-  image: string; // base64 data URL
+  image: string;
   framework: Framework;
 }
 
