@@ -1,0 +1,9 @@
+name = "screenshoto"
+pages_build_output_dir = ".vercel/output/static"
+
+[env.production]
+vars = { OPENAI_API_KEY = "" }
+
+[[kv_namespaces]]
+binding = "NEXT_CACHE"
+id = ""
