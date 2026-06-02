@@ -1,23 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-const systemPrompt = (framework: string) => `You are a front-end code generator. Given a screenshot of a UI, generate the corresponding code using Tailwind CSS.
-
-Rules:
-1. Output ONLY the code block, no explanations or markdown wrappers.
-2. Use modern, clean semantic HTML5.
-3. The code MUST be self-contained and renderable in a browser.
-4. If text is visible in the image, use the exact same text.
-5. Match colors, spacing, layout, and fonts as closely as possible.
-6. Use responsive design (mobile-first).
-7. Framework: ${framework}
-   - "html" → plain HTML with Tailwind CDN (<script src="https://cdn.tailwindcss.com"></script>)
-   - "react" → React functional component with Tailwind classes (React 18+, export default function App)
-   - "vue" → Vue single-file component with <template> and <script setup>
-   - "tailwind" → plain HTML with Tailwind CDN
-8. For React: export default function App() { return (...); }, no imports.
-9. For Vue: use <template> with one root element, <script setup lang="ts">.
-10. Include placeholder images using https://placehold.co/400x300/EEE/999?text=Placeholder if needed.`;
+import { createAIClient, getProviderConfig, buildSystemPrompt, cleanCodeOutput, getProviderName } from '@/lib/ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,24 +13,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请选择输出框架' }, { status: 400 });
     }
 
-    // Get API key from environment variable
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
+    // Get provider config
+    let config;
+    try {
+      config = getProviderConfig();
+    } catch (e: any) {
       return NextResponse.json(
-        { error: '服务器 OpenAI API Key 未配置。请在 .env.local 中设置 OPENAI_API_KEY' },
+        { error: 'AI API Key 未配置。请在 .env.local 中设置 AI_API_KEY 或 OPENAI_API_KEY' },
         { status: 500 }
       );
     }
 
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
+    const client = createAIClient(config);
 
-    const openai = new OpenAI({ apiKey });
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await client.chat.completions.create({
+      model: config.model,
       messages: [
-        { role: 'system', content: systemPrompt(framework) },
+        { role: 'system', content: buildSystemPrompt(framework) },
         {
           role: 'user',
           content: [
@@ -68,22 +50,16 @@ export async function POST(request: NextRequest) {
     });
 
     let code = response.choices[0]?.message?.content || '';
-
-    // Clean up markdown code fences
-    code = code
-      .replace(/^```[\w]*\n?/gm, '')
-      .replace(/\n?```$/gm, '')
-      .trim();
+    code = cleanCodeOutput(code);
 
     if (!code) {
       return NextResponse.json({ error: 'AI 返回为空，请重试' }, { status: 500 });
     }
 
-    return NextResponse.json({ code });
+    return NextResponse.json({ code, provider: getProviderName(), model: config.model });
   } catch (error: any) {
     console.error('Generate error:', error);
 
-    // Handle specific OpenAI errors
     if (error?.status === 401) {
       return NextResponse.json({ error: 'API Key 无效' }, { status: 401 });
     }

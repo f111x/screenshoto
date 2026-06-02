@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { createAIClient, getProviderConfig, getProviderName } from '@/lib/ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,17 +9,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少截图或代码' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    let config;
+    try {
+      config = getProviderConfig();
+    } catch {
+      // Scoring is optional — fail silently
       return NextResponse.json({ score: null });
     }
 
     const base64Image = originalImage.replace(/^data:image\/\w+;base64,/, '');
+    const client = createAIClient(config);
 
-    const openai = new OpenAI({ apiKey });
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await client.chat.completions.create({
+      model: config.model,
       messages: [
         {
           role: 'system',
@@ -27,10 +29,10 @@ export async function POST(request: NextRequest) {
 
 Respond with ONLY a number from 0 to 100, where:
 - 100 = pixel-perfect match
-- 80-99 = very close, minor differences in spacing/color
-- 60-79 = recognizable but noticeable differences in layout
-- 40-59 = rough approximation, layout or styling significantly different
-- 0-39 = poor match, barely resembles the original
+- 80-99 = very close, minor differences
+- 60-79 = recognizable but noticeable differences
+- 40-59 = rough approximation
+- 0-39 = poor match
 
 Output ONLY the number, no text.`,
         },
@@ -57,7 +59,7 @@ Output ONLY the number, no text.`,
     const score = parseInt(content || '0', 10);
     const validScore = isNaN(score) ? null : Math.min(100, Math.max(0, score));
 
-    return NextResponse.json({ score: validScore });
+    return NextResponse.json({ score: validScore, provider: getProviderName() });
   } catch {
     return NextResponse.json({ score: null });
   }

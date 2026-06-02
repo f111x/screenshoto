@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { createAIClient, getProviderConfig, cleanCodeOutput } from '@/lib/ai';
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 10; // 10 requests per minute
@@ -53,16 +53,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'framework 必须为 html/react/vue/tailwind 之一' }, { status: 400 });
     }
 
-    const openaiKey = process.env.OPENAI_API_KEY;
-    if (!openaiKey) {
-      return NextResponse.json({ error: '服务器 OpenAI API Key 未配置' }, { status: 500 });
+    // Get provider config
+    let config;
+    try {
+      config = getProviderConfig();
+    } catch {
+      return NextResponse.json({ error: 'AI API Key 未配置' }, { status: 500 });
     }
 
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
-    const openai = new OpenAI({ apiKey: openaiKey });
+    const client = createAIClient(config);
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await client.chat.completions.create({
+      model: config.model,
       messages: [
         {
           role: 'system',
@@ -88,7 +91,7 @@ Output ONLY the code block. Framework: ${framework}.
     });
 
     let code = response.choices[0]?.message?.content || '';
-    code = code.replace(/^```[\w]*\n?/gm, '').replace(/\n?```$/gm, '').trim();
+    code = cleanCodeOutput(code);
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { createAIClient, getProviderConfig, getProviderName } from '@/lib/ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,15 +9,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少代码' }, { status: 400 });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API Key 未配置' }, { status: 500 });
+    let config;
+    try {
+      config = getProviderConfig();
+    } catch {
+      return NextResponse.json({ issues: [], summary: 'AI 未配置，无法分析' });
     }
 
-    const openai = new OpenAI({ apiKey });
+    const client = createAIClient(config);
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await client.chat.completions.create({
+      model: config.model,
       messages: [
         {
           role: 'system',
@@ -28,36 +30,33 @@ Respond with a JSON object in this exact format:
   "issues": [
     {
       "type": "accessibility" | "performance" | "best-practice" | "responsive" | "semantic",
-      "title": "Short issue title in Chinese",
-      "description": "Brief explanation in Chinese",
+      "title": "Short issue title",
+      "description": "Brief explanation",
       "line": <line number or null>,
-      "fix": "<the fixed code snippet for just this issue>"
+      "fix": "<fixed code snippet>"
     }
   ],
-  "summary": "Brief Chinese summary of overall code quality"
+  "summary": "Brief summary of overall code quality"
 }
 
 Rules:
 - Return 1-4 issues maximum
-- Only flag real issues, don't make things up
-- Each fix should be a minimal code change
-- If the code is clean, return {"issues": [], "summary": "代码质量良好，无需改进"}
-- The fix should be the complete replacement for the affected section`,
+- Only flag real issues
+- Each fix should be a minimal change
+- If code is clean: {"issues": [], "summary": "Code looks good, no improvements needed"}
+- Fix should be the complete replacement for the affected section`,
         },
-        {
-          role: 'user',
-          content: code.slice(0, 4000),
-        },
+        { role: 'user', content: code.slice(0, 4000) },
       ],
       response_format: { type: 'json_object' },
       max_tokens: 2048,
       temperature: 0.3,
     });
 
-    const content = response.choices[0]?.message?.content || '{"issues":[],"summary":"分析失败"}';
+    const content = response.choices[0]?.message?.content || '{"issues":[],"summary":"Analysis failed"}';
     const result = JSON.parse(content);
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, provider: getProviderName() });
   } catch (error: any) {
     return NextResponse.json(
       { issues: [], summary: 'AI 分析暂时不可用: ' + (error.message || '') },
