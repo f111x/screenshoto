@@ -29,4 +29,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: e54c8dcb1abbec24d75b5d5471c7c502
-          command: pages deploy .vercel/output/static --project-name=screenshoto --compatibility-flags nodejs_compat --compatibility-date 2025-05-01
+          command: pages deploy .vercel/output/static --project-name=screenshoto
