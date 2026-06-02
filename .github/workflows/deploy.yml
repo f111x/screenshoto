@@ -24,18 +24,16 @@ jobs:
       - name: Build with next-on-pages
         run: npx @cloudflare/next-on-pages
 
+      - name: Set Cloudflare env vars
+        run: |
+          curl -s -X PATCH "https://api.cloudflare.com/client/v4/accounts/e54c8dcb1abbec24d75b5d5471c7c502/pages/projects/screenshoto" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"deployment_configs":{"production":{"env_vars":{"AI_PROVIDER":{"type":"plain_text","value":"moonshot"},"AI_MODEL":{"type":"plain_text","value":"moonshot-v1-8k-vision"},"AI_API_KEY":{"type":"secret_text","value":"${{ secrets.AI_API_KEY }}"}}}}}'
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: e54c8dcb1abbec24d75b5d5471c7c502
           command: pages deploy .vercel/output/static --project-name=screenshoto
-          secrets: |
-            AI_API_KEY
-          envVars: |
-            AI_PROVIDER
-            AI_MODEL
-        env:
-          AI_PROVIDER: moonshot
-          AI_MODEL: moonshot-v1-8k-vision
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
