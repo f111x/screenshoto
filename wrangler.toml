@@ -2,3 +2,7 @@ name = "screenshoto"
 pages_build_output_dir = ".vercel/output/static"
 compatibility_flags = ["nodejs_compat"]
 compatibility_date = "2025-05-01"
+
+[vars]
+AI_PROVIDER = "moonshot"
+AI_MODEL = "moonshot-v1-8k-vision"

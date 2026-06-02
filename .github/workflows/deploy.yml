@@ -30,3 +30,12 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: e54c8dcb1abbec24d75b5d5471c7c502
           command: pages deploy .vercel/output/static --project-name=screenshoto
+          secrets: |
+            AI_API_KEY
+          envVars: |
+            AI_PROVIDER
+            AI_MODEL
+        env:
+          AI_PROVIDER: moonshot
+          AI_MODEL: moonshot-v1-8k-vision
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
