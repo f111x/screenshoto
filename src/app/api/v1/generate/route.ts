@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient, getProviderConfig, cleanCodeOutput } from '@/lib/ai';
 
+export const runtime = 'edge';
+
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 10; // 10 requests per minute
 

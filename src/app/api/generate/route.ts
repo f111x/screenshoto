@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient, getProviderConfig, buildSystemPrompt, cleanCodeOutput, getProviderName } from '@/lib/ai';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { image, framework } = await request.json();
