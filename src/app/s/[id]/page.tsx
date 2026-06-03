@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import ShareViewer from './ShareViewer';
 
+export const runtime = 'edge';
+
 interface Props {
   params: Promise<{ id: string }>;
 }

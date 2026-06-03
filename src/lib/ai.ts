@@ -29,7 +29,7 @@ const PROVIDER_PRESETS: Record<string, { baseURL: string; defaultModel: string }
   },
   moonshot: {
     baseURL: 'https://api.moonshot.cn/v1',
-    defaultModel: 'moonshot-v1-8k-vision',
+    defaultModel: 'kimi-k2.5',
   },
   stepfun: {
     baseURL: 'https://api.stepfun.com/v1',

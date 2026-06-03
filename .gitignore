@@ -41,6 +41,16 @@ yarn-error.log*
 # vercel
 .vercel
 
+# screenshoto debug artifacts
+*.zip
+logs*/
+check_*.ps1
+debug_build.ps1
+echo_test.ps1
+fix_node.ps1
+deploy_fix*.js
+DEPLOY_LOG.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient, getProviderConfig, buildSystemPrompt, cleanCodeOutput, getProviderName } from '@/lib/ai';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { image, framework } = await request.json();
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
         },
       ],
       max_tokens: 4096,
-      temperature: 0.2,
+      temperature: 1.0,
     });
 
     let code = response.choices[0]?.message?.content || '';

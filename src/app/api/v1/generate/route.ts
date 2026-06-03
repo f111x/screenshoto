@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient, getProviderConfig, cleanCodeOutput } from '@/lib/ai';
 
+export const runtime = 'edge';
+
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 10; // 10 requests per minute
 
@@ -87,7 +89,7 @@ Output ONLY the code block. Framework: ${framework}.
         },
       ],
       max_tokens: 4096,
-      temperature: 0.2,
+      temperature: 1.0,
     });
 
     let code = response.choices[0]?.message?.content || '';

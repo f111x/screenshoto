@@ -84,7 +84,7 @@ export default function ImageUploader({ onImageReady, disabled }: ImageUploaderP
             <img
               src={preview}
               alt="Screenshot preview"
-              className="max-w-full max-h-full rounded-lg object-contain shadow-md"
+              className="max-w-full max-h-40 sm:max-h-48 rounded-lg object-contain shadow-md"
             />
             <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
               <span className="text-white bg-black/60 px-4 py-2 rounded-lg opacity-0 hover:opacity-100 transition-opacity text-sm">

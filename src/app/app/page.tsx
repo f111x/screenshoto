@@ -172,9 +172,9 @@ export default function AppPage() {
       {/* Main area */}
       <div className="flex-1 flex flex-col lg:flex-row gap-0 overflow-hidden">
         {/* Left: Upload + Controls */}
-        <div className="w-full lg:w-[420px] xl:w-[480px] shrink-0 flex flex-col border-r border-gray-200 dark:border-gray-800">
+        <div className="w-full lg:w-[420px] xl:w-[480px] shrink-0 flex flex-col border-r border-gray-200 dark:border-gray-800 overflow-y-auto">
           {/* Mode toggle */}
-          <div className="flex items-center gap-1 px-3 pt-3 pb-1">
+          <div className="flex items-center gap-1 px-3 pt-3 pb-1 shrink-0">
             <button
               onClick={() => setMode('single')}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
@@ -198,7 +198,7 @@ export default function AppPage() {
           </div>
 
           {/* Upload area */}
-          <div className={mode === 'single' ? 'h-52 sm:h-64 p-3' : 'p-3'}>
+          <div className={mode === 'single' ? 'flex-1 min-h-0 p-3' : 'p-3'}>
             {mode === 'single' ? (
               <ImageUploader onImageReady={handleImageReady} disabled={loading} />
             ) : (
@@ -214,8 +214,8 @@ export default function AppPage() {
             )}
           </div>
 
-          {/* Controls (single mode only) */}
-          <div className="px-3 pb-3 space-y-3">
+          {/* Controls (single mode only) — sticky at bottom */}
+          <div className="sticky bottom-0 bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800 px-3 py-2 space-y-2">
             <button
               onClick={handleGenerate}
               disabled={loading || !imageDataUrl}

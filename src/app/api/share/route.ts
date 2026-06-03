@@ -3,6 +3,8 @@ import { saveShare } from '@/lib/store';
 import { generateId } from '@/lib/utils';
 import type { ShareData } from '@/types';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { imageUrl, framework, code } = await request.json();

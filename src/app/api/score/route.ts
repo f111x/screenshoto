@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient, getProviderConfig, getProviderName } from '@/lib/ai';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { originalImage, code, framework } = await request.json();
@@ -52,7 +54,7 @@ Output ONLY the number, no text.`,
         },
       ],
       max_tokens: 10,
-      temperature: 0.1,
+      temperature: 1.0,
     });
 
     const content = response.choices[0]?.message?.content?.trim();

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIClient, getProviderConfig, getProviderName } from '@/lib/ai';
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { code, framework } = await request.json();
@@ -50,7 +52,7 @@ Rules:
       ],
       response_format: { type: 'json_object' },
       max_tokens: 2048,
-      temperature: 0.3,
+      temperature: 1.0,
     });
 
     const content = response.choices[0]?.message?.content || '{"issues":[],"summary":"Analysis failed"}';
